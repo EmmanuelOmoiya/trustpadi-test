@@ -5,14 +5,14 @@ WORKDIR /app
 
 RUN npm i -g pnpm@10.13.1
 
+# Copy source files
+COPY . .
+
 RUN pnpm install
 
 # Install dependencies
 COPY package*.json ./
 RUN pnpm ci
-
-# Copy source files
-COPY . .
 
 # Build the NestJS project
 RUN pnpm run build
