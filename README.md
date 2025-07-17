@@ -1,6 +1,6 @@
 # 📚 Book Management API
 
-A RESTful NestJS API that allows users to manage books, follow other users, and comment on books. The API supports JWT authentication, Redis caching, MongoDB database, and comes with full CI/CD integration using  GitHub Actions, Docker, and Kubernetes.
+A RESTful NestJS API that allows users to manage books, follow other users, and comment on books. The API supports JWT authentication, Redis caching, MongoDB database, and comes with full CI/CD integration using  GitHub Actions, Docker
 
 ---
 
@@ -14,8 +14,8 @@ A RESTful NestJS API that allows users to manage books, follow other users, and 
 * Redis caching for optimized performance
 * Multi-environment setup (`.dev.env`, `.staging.env`, `.prod.env`)
 * Swagger API documentation
-* CI/CD (Jenkins, GitHub Actions)
-* Dockerized & deployable on AWS EC2 or Kubernetes
+* CI/CD (tHub Actions)
+* Dockerized & deployable on AWS EC2
 * Security scanning (Trivy) and code quality (SonarQube)
 
 ---
