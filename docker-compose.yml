@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+  api_dev:
+    container_name: api_dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env.dev
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "5000:4000"
+    networks:
+      - app_network
+
+  api_staging:
+    container_name: api_staging
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env.staging
+    environment:
+      - NODE_ENV=staging
+    ports:
+      - "5001:4000"
+    networks:
+      - app_network
+
+  api_prod:
+    container_name: api_prod
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env.prod
+    environment:
+      - NODE_ENV=production
+    ports:
+      - "5002:4000"
+    networks:
+      - app_network
+
+  proxy:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx_proxy_manager
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8090:81"
+    environment:
+      DB_SQLITE_FILE: "/data/database.sqlite"
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge

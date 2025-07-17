@@ -29,7 +29,7 @@ jobs:
         run: npm i -g pnpm@10.13.1
 
       - name: Install Dependencies
-        run: pnpm ci
+        run: pnpm install
 
       - name: Lint Code
         run: pnpm run lint
@@ -110,6 +110,6 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             docker pull ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
-            docker stop trustpadi-test || true
-            docker rm trustpadi-test || true
-            docker run -d --env-file .${{ github.ref_name }}.env -p 4000:4000 --name trustpadi-test ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            docker stop api_${{ github.ref_name }} || true
+            docker rm api_${{ github.ref_name }} || true
+            docker compose up -d --force-recreate --build api_${{ github.ref_name }}
