@@ -1,3 +1,4 @@
+import { Pagination } from "@//common/dto/pagination.dto";
 import { ApiProperty } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
 import { IsMongoId, IsNotEmpty, IsOptional } from "class-validator";
@@ -70,4 +71,26 @@ export class UpdateBookDto {
 export class ParamsWithIdDto {
   @IsMongoId()
   id: Types.ObjectId;
+}
+
+export class GetAllBooksDto extends Pagination {
+  @IsOptional()
+  @ApiProperty({
+    description: 'Genre',
+    example: 'Fiction',
+    required: true,
+    title: 'genre',
+  })
+  @Transform(({ value }) => String(value).toLowerCase().trim())
+  genre?: string
+
+  @IsOptional()
+  @ApiProperty({
+    description: 'Search by Title or Author',
+    example: 'Dawn of Charles or Emmanuel',
+    required: true,
+    title: 'search',
+  })
+  @Transform(({ value }) => String(value).toLowerCase().trim())
+  search?: string
 }

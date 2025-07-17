@@ -12,7 +12,7 @@ import { errorHandler, handlePagination } from '@//utils';
 import { Pagination } from '@//common/dto/pagination.dto';
 import { IResponse, TokenData } from '@//interfaces';
 import { CacheService } from '../cache/cache.service';
-import { CreateBookDto, UpdateBookDto } from './dtos/book.dto';
+import { CreateBookDto, GetAllBooksDto, UpdateBookDto } from './dtos/book.dto';
 import { CreateCommentDto } from '../comments/dtos/comment.dto';
 import { CommentsService } from '../comments/comments.service';
 import { User, UserDocument } from '../users/schema/users.schema';
@@ -27,21 +27,20 @@ export class BooksService {
     @Inject() private readonly commentsService: CommentsService,
     @InjectModel(Book.name) private readonly booksModel: Model<BookDocument>,
     @InjectModel(User.name) private readonly usersModel: Model<UserDocument>,
-    @Inject() private readonly s3Service: S3Service
+    @Inject() private readonly s3Service: S3Service,
   ) {}
 
-  async getAllBooks(pagination: Pagination): Promise<IResponse<Book[]>> {
+  async getAllBooks(query: GetAllBooksDto): Promise<IResponse<Book[]>> {
     try {
-      const { page: pageNum, limit: size } = pagination;
+      const { page: pageNum, limit: size, search, genre } = query;
       const { page, limit } = handlePagination(pageNum, size);
-      const skipExp: number = page > 1 ? page - 1 : 0;
-      const toSkip = limit * skipExp;
+      const skip = (page - 1) * limit;
 
-      const cacheKey = `books:list:page-${page}-limit-${limit}`;
-
+      const cacheKey = `books:list:page-${page}-limit-${limit}-search-${search ?? ''}-genre-${genre ?? ''}`;
       const cached = await this.cacheService.get(cacheKey);
       if (cached) {
-        const parsed = JSON.parse(cached as any);
+        // @ts-ignore
+        const parsed = JSON.parse(cached as string);
         return {
           status: 'success',
           statusCode: HttpStatus.OK,
@@ -61,23 +60,70 @@ export class BooksService {
         };
       }
 
-      const books = await this.booksModel
-        .find({}, 'title description author cover genre').populate('author', 'first_name last_name username')
-        .skip(toSkip)
-        .limit(limit)
-        .sort({ created_at: -1 })
-        .lean()
-        .exec();
-      const totalCount = await this.booksModel.countDocuments();
+      const pipeline: any[] = [];
 
+      if (genre) {
+        pipeline.push({
+          $match: { genre: { $regex: new RegExp(`^${genre}$`, 'i') } },
+        });
+      }
+
+      pipeline.push({
+        $lookup: {
+          from: 'users',
+          localField: 'author',
+          foreignField: '_id',
+          as: 'author',
+        },
+      });
+
+      pipeline.push({ $unwind: '$author' });
+
+      if (search) {
+        const regex = new RegExp(search, 'i');
+        pipeline.push({
+          $match: {
+            $or: [
+              { title: { $regex: regex } },
+              { 'author.first_name': { $regex: regex } },
+              { 'author.last_name': { $regex: regex } },
+              { 'author.username': { $regex: regex } },
+            ],
+          },
+        });
+      }
+
+      const countPipeline = [...pipeline, { $count: 'total' }];
+      const countResult = await this.booksModel.aggregate(countPipeline).exec();
+      const totalCount = countResult[0]?.total || 0;
+
+      pipeline.push({ $sort: { created_at: -1 } });
+      pipeline.push({ $skip: skip });
+      pipeline.push({ $limit: limit });
+      pipeline.push({
+        $project: {
+          _id: 1,
+          title: 1,
+          description: 1,
+          cover: 1,
+          genre: 1,
+          created_at: 1,
+          author: {
+            _id: '$author._id',
+            first_name: '$author.first_name',
+            last_name: '$author.last_name',
+            username: '$author.username',
+          },
+        },
+      });
+
+      const books = await this.booksModel.aggregate(pipeline).exec();
 
       await this.cacheService.save({
         key: cacheKey,
-        data: JSON.stringify({
-          items: books,
-          totalCount,
-        }) as any,
-        ttl: 60 * 5,
+        // @ts-ignore
+        data: JSON.stringify({ items: books, totalCount }),
+        ttl: 60 * 5, // 5 minutes
       });
 
       return {
@@ -85,15 +131,15 @@ export class BooksService {
         statusCode: HttpStatus.OK,
         message: 'Books fetched successfully',
         data: {
-            items: books,
-            pagination: {
-              page,
-              limit,
-              totalCount: totalCount,
-              totalPages: Math.ceil(totalCount / limit),
-              hasNextPage: page < Math.ceil(totalCount / limit),
-              hasPreviousPage: page > 1,
-            },
+          items: books,
+          pagination: {
+            page,
+            limit,
+            totalCount,
+            totalPages: Math.ceil(totalCount / limit),
+            hasNextPage: page < Math.ceil(totalCount / limit),
+            hasPreviousPage: page > 1,
+          },
         },
         error: null,
       };
@@ -130,12 +176,12 @@ export class BooksService {
         .populate('author', 'first_name last_name username')
         .exec();
 
-        if (!book) {
+      if (!book) {
         throw new BadRequestException({
-            statusCode: HttpStatus.BAD_REQUEST,
-            message: 'Book not found!',
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Book not found!',
         });
-        }
+      }
       await this.cacheService.save({
         key: cacheKey,
         data: JSON.stringify(book) as any,
@@ -158,7 +204,7 @@ export class BooksService {
   async createBook(
     userData: TokenData,
     payload: CreateBookDto,
-    file: Express.Multer.File
+    file: Express.Multer.File,
   ): Promise<IResponse> {
     const { user } = userData;
     const session = await this.connection.startSession();
@@ -187,8 +233,8 @@ export class BooksService {
             [
               {
                 ...payload,
-                author: user as Types.ObjectId,
-                cover: imageUrl as string
+                author: new Types.ObjectId(user),
+                cover: imageUrl as string,
               },
             ],
             { session },
@@ -254,7 +300,7 @@ export class BooksService {
       await this.booksModel
         .findOneAndUpdate({ _id: bookId, author: user }, payload)
         .exec();
-    await this.cacheService.delete(`books:item:${bookId}`)
+      await this.cacheService.delete(`books:item:${bookId}`);
       return {
         status: 'success',
         statusCode: HttpStatus.OK,
@@ -295,7 +341,7 @@ export class BooksService {
       await this.booksModel
         .findOneAndDelete({ _id: bookId, author: user })
         .exec();
-    await this.cacheService.delete(`books:item:${bookId}`)
+      await this.cacheService.delete(`books:item:${bookId}`);
       return {
         status: 'success',
         statusCode: HttpStatus.OK,
@@ -376,7 +422,7 @@ export class BooksService {
 
       const cached = await this.cacheService.get(cacheKey);
       if (cached) {
-        const parsed = JSON.parse(cached as any)
+        const parsed = JSON.parse(cached as any);
         return {
           status: 'success',
           statusCode: HttpStatus.OK,
@@ -384,14 +430,14 @@ export class BooksService {
           data: {
             items: parsed.items,
             pagination: {
-                page,
-                limit,
-                totalCount: parsed.totalCount,
-                totalPages: Math.ceil(parsed.totalCount / limit),
-                hasNextPage: page < Math.ceil(parsed.totalCount / limit),
-                hasPreviousPage: page > 1,
+              page,
+              limit,
+              totalCount: parsed.totalCount,
+              totalPages: Math.ceil(parsed.totalCount / limit),
+              hasNextPage: page < Math.ceil(parsed.totalCount / limit),
+              hasPreviousPage: page > 1,
             },
-            },
+          },
           error: null,
         };
       }
@@ -422,15 +468,15 @@ export class BooksService {
         statusCode: HttpStatus.OK,
         message: 'Book Comments retrieved successfully',
         data: {
-            items: comments.items,
-            pagination: {
-              page,
-              limit,
-              totalCount: comments.totalCount,
-              totalPages: Math.ceil(comments.totalCount / limit),
-              hasNextPage: page < Math.ceil(comments.totalCount / limit),
-              hasPreviousPage: page > 1,
-            },
+          items: comments.items,
+          pagination: {
+            page,
+            limit,
+            totalCount: comments.totalCount,
+            totalPages: Math.ceil(comments.totalCount / limit),
+            hasNextPage: page < Math.ceil(comments.totalCount / limit),
+            hasPreviousPage: page > 1,
+          },
         },
         error: null,
       };

@@ -2,7 +2,7 @@ import { Controller, Get, UseGuards, Req, Post, Body, Param, Query, Put, Delete,
 import { BooksService } from "./books.service";
 import { ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { Pagination } from "@//common/dto/pagination.dto";
-import { CreateBookDto, ParamsWithIdDto, UpdateBookDto } from "./dtos/book.dto";
+import { CreateBookDto, GetAllBooksDto, ParamsWithIdDto, UpdateBookDto } from "./dtos/book.dto";
 import { TokenData } from "@//interfaces";
 import { CreateCommentDto } from "../comments/dtos/comment.dto";
 import { AccessTokenGuard } from "../auth/guards/jwt.guard";
@@ -15,7 +15,7 @@ export class BooksController {
 
     @Get('')
     @ApiOperation({ summary: 'Endpoint to get all books' })
-    async getAllBooks(@Query() query: Pagination){
+    async getAllBooks(@Query() query: GetAllBooksDto){
         return await this.booksService.getAllBooks(query)
     }
 
