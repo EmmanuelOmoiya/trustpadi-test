@@ -98,7 +98,7 @@ jobs:
 
   deploy:
     needs: [docker]
-    if: github.ref_name == 'prod' || github.ref_name == 'staging'
+    # if: github.ref_name == 'prod' || github.ref_name == 'staging'
     runs-on: ubuntu-latest
 
     steps:
