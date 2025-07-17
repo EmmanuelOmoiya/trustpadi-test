@@ -24,7 +24,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 # Install PM2 globally
-RUN pnpm install -g pm2
+RUN npm install -g pm2
 
 # Copy built app and dependencies from builder
 COPY --from=builder /app/dist ./dist
