@@ -7,6 +7,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  Res,
   UnauthorizedException,
 } from '@nestjs/common';
 import { errorHandler } from '@//utils';
@@ -18,6 +19,7 @@ import { ConfigService } from '@nestjs/config';
 import { ClientSession, Connection, Model } from 'mongoose';
 import { IResponse, TokenData } from '@//interfaces';
 import EncryptService from '@//helpers/encryption';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -38,6 +40,7 @@ export class AuthService {
 
   async register(
     payload: RegisterDto,
+    @Res({ passthrough: true }) res: Response
   ): Promise<IResponse<{ accessToken: string; refreshToken: string } | null>> {
     let data: { accessToken: string; refreshToken: string } | null = null;
     const session = await this.connection.startSession();
@@ -83,12 +86,27 @@ export class AuthService {
             following_count: user.following.length,
           };
 
+          
+          
           const { accessToken, refreshToken } = await this.getAndUpdateToken(
             tokenData,
             user,
             session,
           );
           data = { accessToken, refreshToken };
+          res.cookie('accessToken', accessToken, {
+            httpOnly: true,
+            secure: this.configService.get<string>(ENV.NODE_ENV) === 'production',
+            sameSite: 'lax',
+            maxAge: parseInt((this.configService.get<string>(ENV.JWT_ACCESS_TOKEN_EXPIRATION_TIME) as string).slice(0, -1) ) * 60 * 1000, // 15 minutes
+          });
+
+          res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: this.configService.get<string>(ENV.NODE_ENV) === 'production',
+            sameSite: 'lax',
+            maxAge: parseInt((this.configService.get<string>(ENV.JWT_REFRESH_TOKEN_EXPIRATION_TIME) as string).slice(0, -1) ) * 60 * 1000, // 7 days
+          });
           await session.commitTransaction();
         },
         {
@@ -122,6 +140,7 @@ export class AuthService {
 
   async login(
     payload: LoginDto,
+    @Res({ passthrough: true }) res: Response
   ): Promise<IResponse<{ accessToken: string; refreshToken: string }>> {
     try {
       const { identifier, password } = payload;
@@ -157,6 +176,20 @@ export class AuthService {
         tokenData,
         user,
       );
+
+      res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        secure: this.configService.get<string>(ENV.NODE_ENV) === 'production',
+        sameSite: 'lax',
+        maxAge: parseInt((this.configService.get<string>(ENV.JWT_ACCESS_TOKEN_EXPIRATION_TIME) as string).slice(0, -1) ) * 60 * 1000, // 15 minutes
+      });
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: this.configService.get<string>(ENV.NODE_ENV) === 'production',
+        sameSite: 'lax',
+        maxAge: parseInt((this.configService.get<string>(ENV.JWT_REFRESH_TOKEN_EXPIRATION_TIME) as string).slice(0, -1) ) * 60 * 1000, // 7 days
+      });
 
       return {
         status: 'success',

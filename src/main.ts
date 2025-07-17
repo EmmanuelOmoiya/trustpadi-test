@@ -44,7 +44,13 @@ async function bootstrap() {
 
   app.useGlobalFilters(new HttpExceptionFilter());
   app.use(helmet());
-  app.enableCors();
+  // app.enableCors();
+  // main.ts
+  app.enableCors({
+    origin: ['*'], // your frontend origin
+    credentials: true,
+  });
+
   app.use(morgan('dev'));
   app.useBodyParser('json', { limit: '10mb' });
   
