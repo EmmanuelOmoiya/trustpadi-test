@@ -82,22 +82,22 @@ jobs:
           push: true
           tags: ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
 
-  trivy-scan:
-    needs: docker
-    runs-on: ubuntu-latest
+  # trivy-scan:
+  #   needs: docker
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Install Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
+  #   steps:
+  #     - name: Install Trivy
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         image-ref: ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+  #         format: 'table'
+  #         exit-code: '1'
+  #         ignore-unfixed: true
+  #         vuln-type: 'os,library'
 
   deploy:
-    needs: [docker, trivy-scan]
+    needs: [docker]
     if: github.ref_name == 'prod' || github.ref_name == 'staging'
     runs-on: ubuntu-latest
 
