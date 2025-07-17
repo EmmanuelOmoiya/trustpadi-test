@@ -9,7 +9,7 @@ on:
   pull_request:
 
 env:
-  IMAGE_NAME: your-dockerhub-username/trustpadi-test
+  IMAGE_NAME: emmanuelomoiya/trustpadi-test
 
 jobs:
   build-test-lint:
