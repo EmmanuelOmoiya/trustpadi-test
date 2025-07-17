@@ -126,7 +126,4 @@ jobs:
             docker rm api_${{ github.ref_name }} || true
             
             echo "Starting service via Docker Compose..."
-            docker compose up -d api_${{ github.ref_name }}
-
-
-
+            docker compose up -d proxy api_${{ github.ref_name }}
