@@ -3,9 +3,7 @@ version: "3.8"
 services:
   api_dev:
     container_name: api_dev
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: emmanuelomoiya/trustpadi-test:dev
     restart: always
     env_file:
       - .env.dev
@@ -18,9 +16,7 @@ services:
 
   api_staging:
     container_name: api_staging
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: emmanuelomoiya/trustpadi-test:staging
     restart: always
     env_file:
       - .env.staging
@@ -33,9 +29,7 @@ services:
 
   api_prod:
     container_name: api_prod
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: emmanuelomoiya/trustpadi-test:prod
     restart: always
     env_file:
       - .env.prod

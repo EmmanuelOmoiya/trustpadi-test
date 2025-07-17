@@ -98,9 +98,7 @@ jobs:
 
   deploy:
     needs: [docker]
-    # if: github.ref_name == 'prod' || github.ref_name == 'staging'
     runs-on: ubuntu-latest
-
     steps:
       - name: SSH and Deploy to EC2
         uses: appleboy/ssh-action@v1.0.0
@@ -109,7 +107,26 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            cd /home/ubuntu/trustpadi-test/
+
+            echo "Writing environment file..."
+            if [ "${{ github.ref_name }}" = "dev" ]; then
+              echo "${{ secrets.ENV_DEV }}" > .env.dev
+            elif [ "${{ github.ref_name }}" = "staging" ]; then
+              echo "${{ secrets.ENV_STAGING }}" > .env.staging
+            elif [ "${{ github.ref_name }}" = "prod" ]; then
+              echo "${{ secrets.ENV_PROD }}" > .env.prod
+            fi
+            
+            echo "Pulling latest image..."
             docker pull ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            
+            echo "Stopping old container if it exists..."
             docker stop api_${{ github.ref_name }} || true
             docker rm api_${{ github.ref_name }} || true
-            docker compose up -d --force-recreate --build api_${{ github.ref_name }}
+            
+            echo "Starting service via Docker Compose..."
+            docker compose up -d api_${{ github.ref_name }}
+
+
+
