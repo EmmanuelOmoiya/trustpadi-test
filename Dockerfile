@@ -12,7 +12,6 @@ RUN pnpm install
 
 # Install dependencies
 COPY package*.json ./
-RUN pnpm ci
 
 # Build the NestJS project
 RUN pnpm run build
