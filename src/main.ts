@@ -13,18 +13,22 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
+  app.enableVersioning({
+    type: VersioningType.URI,
+  });
   const SWAGGER_ENVS = ['development', 'production'];
 
   if (SWAGGER_ENVS.includes(ENV.NODE_DEV)) {
-    app.use(
-      ['/docs'],
-      expressBasicAuth({
-        challenge: true,
-        users: {
-          [ENV.SWAGGER_USER]: ENV.SWAGGER_PASSWORD,
-        },
-      }),
-    );
+    // Can be used later to make access private
+    // app.use(
+    //   ['/docs'],
+    //   expressBasicAuth({
+    //     challenge: true,
+    //     users: {
+    //       [ENV.SWAGGER_USER]: ENV.SWAGGER_PASSWORD,
+    //     },
+    //   }),
+    // );
     const config = new DocumentBuilder()
       .setTitle('TrustPadi Test')
       .setDescription('TrustPadi Test API documentation')
@@ -43,20 +47,7 @@ async function bootstrap() {
   app.enableCors();
   app.use(morgan('dev'));
   app.useBodyParser('json', { limit: '10mb' });
-  app.enableVersioning({
-    type: VersioningType.URI,
-  });
-  // app.useGlobalPipes(new ValidationPipe({
-  //   transform: true,
-  //   whitelist: true,
-  //   forbidNonWhitelisted: true
-  // }));
-  // app.enableCors({
-  //   origin: ['http://localhost:3000', 'https://cjtutors.com', "https://www.cjtutors.com", 'https://admin.cjtutors.com', 'https://tutor.cjtutors.com', 'https://student.cjtutors.com', "https://go.room.sh"],
-  //   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  //   allowedHeaders: ['Content-Type', 'Authorization'],
-  // });
-
+  
   await app.listen(process.env.PORT ?? 5000);
 }
 bootstrap();
