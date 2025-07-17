@@ -44,8 +44,6 @@ async function bootstrap() {
 
   app.useGlobalFilters(new HttpExceptionFilter());
   app.use(helmet());
-  // app.enableCors();
-  // main.ts
   app.enableCors({
     origin: ['*'], // your frontend origin
     credentials: true,

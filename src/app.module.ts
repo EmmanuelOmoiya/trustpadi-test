@@ -11,6 +11,7 @@ import { CommentsModule } from './modules/comments/comments.module';
 import { UsersModule } from './modules/users/users.module';
 import { CachesModule } from './modules/cache/cache.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { S3Module } from './modules/s3/s3.module';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { AuthModule } from './modules/auth/auth.module';
     CommentsModule,
     UsersModule,
     CachesModule,
-    AuthModule
+    AuthModule,
+    S3Module
   ],
   controllers: [AppController],
   providers: [AppService, { 

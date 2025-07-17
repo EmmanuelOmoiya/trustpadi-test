@@ -12,6 +12,12 @@ export class Book {
     @Prop({ required: true })
     description: string;
 
+    @Prop({ type: String })
+    cover?: string;
+
+    @Prop({ required: true })
+    genre: string;
+
     @Prop({ required: true, type: Types.ObjectId, ref: 'User', })
     author: Types.ObjectId;
     

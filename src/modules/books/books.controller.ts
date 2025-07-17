@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Req, Post, Body, Param, Query, Put, Delete } from "@nestjs/common";
+import { Controller, Get, UseGuards, Req, Post, Body, Param, Query, Put, Delete, UseInterceptors, UploadedFile } from "@nestjs/common";
 import { BooksService } from "./books.service";
 import { ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import { Pagination } from "@//common/dto/pagination.dto";
@@ -7,6 +7,7 @@ import { TokenData } from "@//interfaces";
 import { CreateCommentDto } from "../comments/dtos/comment.dto";
 import { AccessTokenGuard } from "../auth/guards/jwt.guard";
 import { Types } from "mongoose";
+import { FileInterceptor } from "@nestjs/platform-express";
 
 @Controller({ version: '1', path: 'books' })
 export class BooksController {
@@ -26,11 +27,12 @@ export class BooksController {
 
     @Post('')
     @UseGuards(AccessTokenGuard)
+    @UseInterceptors(FileInterceptor('cover'))
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Endpoint to create a new book' })
-    async createBook(@Req() auth: Request & { user: TokenData }, @Body() body: CreateBookDto){
+    async createBook(@Req() auth: Request & { user: TokenData }, @Body() body: CreateBookDto, @UploadedFile() cover: Express.Multer.File,){
         const { user } = auth;
-        return await this.booksService.createBook(user, body)
+        return await this.booksService.createBook(user, body, cover)
     }
 
     @Put('/:id')

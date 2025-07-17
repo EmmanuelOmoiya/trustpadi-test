@@ -16,6 +16,7 @@ import { CreateBookDto, UpdateBookDto } from './dtos/book.dto';
 import { CreateCommentDto } from '../comments/dtos/comment.dto';
 import { CommentsService } from '../comments/comments.service';
 import { User, UserDocument } from '../users/schema/users.schema';
+import { S3Service } from '../s3/s3.service';
 
 @Injectable()
 export class BooksService {
@@ -26,6 +27,7 @@ export class BooksService {
     @Inject() private readonly commentsService: CommentsService,
     @InjectModel(Book.name) private readonly booksModel: Model<BookDocument>,
     @InjectModel(User.name) private readonly usersModel: Model<UserDocument>,
+    @Inject() private readonly s3Service: S3Service
   ) {}
 
   async getAllBooks(pagination: Pagination): Promise<IResponse<Book[]>> {
@@ -60,7 +62,7 @@ export class BooksService {
       }
 
       const books = await this.booksModel
-        .find({}, 'title description author').populate('author', 'first_name last_name username')
+        .find({}, 'title description author cover genre').populate('author', 'first_name last_name username')
         .skip(toSkip)
         .limit(limit)
         .sort({ created_at: -1 })
@@ -124,7 +126,7 @@ export class BooksService {
       }
 
       const book = await this.booksModel
-        .findOne({ _id: bookId }, 'title description author')
+        .findOne({ _id: bookId }, 'title description author cover genre')
         .populate('author', 'first_name last_name username')
         .exec();
 
@@ -156,6 +158,7 @@ export class BooksService {
   async createBook(
     userData: TokenData,
     payload: CreateBookDto,
+    file: Express.Multer.File
   ): Promise<IResponse> {
     const { user } = userData;
     const session = await this.connection.startSession();
@@ -175,11 +178,17 @@ export class BooksService {
             });
           }
 
+          let imageUrl: string | null = null;
+          if (file) {
+            imageUrl = await this.s3Service.uploadFile(file);
+          }
+
           const [book] = await this.booksModel.create<Partial<BookDocument>>(
             [
               {
                 ...payload,
                 author: user as Types.ObjectId,
+                cover: imageUrl as string
               },
             ],
             { session },

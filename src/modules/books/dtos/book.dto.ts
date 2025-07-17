@@ -16,6 +16,16 @@ export class CreateBookDto {
 
   @IsNotEmpty()
   @ApiProperty({
+    description: 'Genre',
+    example: 'Fiction',
+    required: true,
+    title: 'genre',
+  })
+  @Transform(({ value }) => String(value).toLowerCase().trim())
+  genre: string;
+
+  @IsNotEmpty()
+  @ApiProperty({
     description: 'Description',
     example: 'The tragic story of how Dan Charles II of Koama land met his ending.',
     required: true,
@@ -45,6 +55,16 @@ export class UpdateBookDto {
   })
   @Transform(({ value }) => String(value).toLowerCase().trim())
   description?: string;
+
+  @IsOptional()
+  @ApiProperty({
+    description: 'Genre',
+    example: 'Fiction',
+    required: true,
+    title: 'genre',
+  })
+  @Transform(({ value }) => String(value).toLowerCase().trim())
+  genre?: string;
 }
 
 export class ParamsWithIdDto {
