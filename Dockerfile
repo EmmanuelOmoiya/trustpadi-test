@@ -32,9 +32,6 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/pm2.config.js ./pm2.config.js
 
-# Optional: copy your env file — or mount it during runtime
-COPY .dev.env .env
-
 # Expose port
 EXPOSE 4000
 
