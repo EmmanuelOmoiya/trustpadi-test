@@ -13,7 +13,7 @@ import {
 import { errorHandler } from '@//utils';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { RegisterDto, LoginDto, ResetPasswordDTO } from './dtos';
-import { ENV, ROLE, TOKEN_TYPES } from '@//constants';
+import { ENV } from '@//constants';
 import { User, UserDocument } from '../users/schema/users.schema';
 import { ConfigService } from '@nestjs/config';
 import { ClientSession, Connection, Model } from 'mongoose';
@@ -94,6 +94,7 @@ export class AuthService {
             session,
           );
           data = { accessToken, refreshToken };
+          res.setHeader('Authorization', `Bearer ${accessToken}`)
           res.cookie('accessToken', accessToken, {
             httpOnly: true,
             secure: this.configService.get<string>(ENV.NODE_ENV) === 'production',
